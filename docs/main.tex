@@ -1,0 +1,25 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{gensymb}
+\title{FDP}
+\author{Sylvain Jonchery }
+\date{January 2017}
+
+\begin{document}
+
+\maketitle
+
+\section{Part}
+$$\frac{r_1^2}{r_2^2}=\alpha$$
+
+$$ (x_t-x_{s1})^2+(y_t-y_{t1})^2+h_1^2=\alpha~((x_t-x_{s2})^2+(y_t-y_{s2})^2+h_2^2)$$
+
+$$x_t^2-2 x_t x_1 +x_1^2 + y_t^2+ 2 y_t y_1 + y_1^2 +h_0^2-\alpha( x_t^2+2 x_tx_2-x_2^2 -y_t^2+2 y_t y_2 -y_2^2 - h_0^2)=0$$
+  
+$$ (1-\alpha)x_t^2 - 2 x_t (x_1 -\alpha x_2) + (1-\alpha) y_t^2 - 2 y_t (y_1-\alpha y_2)= -x_1^2 -y_1^2 +\alpha x_2^2+\alpha y_2^2+(\alpha-1)h_0^2$$
+$$(x_t-\frac{x_1-\alpha x_2}{1-\alpha})^2+(y_t-\frac{y_1-\alpha y_2}{1-\alpha})^2=(\frac{x_1-\alpha x_2}{1-\alpha})^2+(\frac{y_1-\alpha y_2}{1-\alpha})^2+\frac{-(x_1^2+ y_1^2)+\alpha (x_2^2+y_2^2)}{1-\alpha}-h_0^2$$
+
+
+
+
+\end{document}
