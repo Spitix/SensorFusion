@@ -1,0 +1,24 @@
+function [x_kp1_kp1,P_kp1_kp1,K_kp1]=KF_form(s_1,s_k,h_0,alpha_k,x_ini,P_ini,F,G_k,Q_k,R_k)
+    x_ini=x_ini'
+    
+    z_k=norm(x_ini-s_1)^2/norm(x_ini-s_k)^2
+    v_k=alpha_k-z_k
+    
+    
+    
+    %H=dh/dx
+    H=(2*(x_ini-s_1)*(norm(x_ini-s_k)^2+h_0^2)-2*(x_ini-s_k)*(norm(x_ini-s_1)^2+h_0^2))/((norm(x_ini-s_k)^2+h_0^2)^2)
+    
+    
+    % calculations
+    P_kp1_k=F*P_ini*F'+G_k*Q_k*G_k'
+    S_kp1=H*P_kp1_k*H'+R_k
+
+    %Output
+    
+    K_kp1= P_kp1_k*H'/S_kp1 
+    P_kp1_kp1=(eye(size(K_kp1*H))-K_kp1*H)*P_kp1_k
+    x_kp1_kp1=(x_ini+K_kp1*v_k)
+    
+     
+end

@@ -264,9 +264,9 @@ radius_geo_circle=zeros(N_loops_fb,1);                                         %
 
 %   Filters
 %   EKF or UKF
-x_state=x_state_ini.*ones(2,N_loops_fb);                                             	%   Updated EKF (UKF) state vector for all steps
-P_cov=P_cov_ini.*ones(2,2,N_loops_fb);                                             	%   EKF (UKF) Covariance matrix for all
-
+x_state=zeros(2,N_loops_fb);                                             	%   Updated EKF (UKF) state vector for all steps
+P_cov=zeros(2,2,N_loops_fb);                                             	%   EKF (UKF) Covariance matrix for all
+P_cov(:,:,1)= ;
 K_EKF_gain=zeros(2,N_loops_fb);                                           	%   Kalman gain storage
 
 
@@ -380,11 +380,12 @@ for k=1:N_loops_fb                                                             %
             re_run_bool=0;
             div_EKF_bool=0;
         end
-         
+        disp('in if')
+        P_cov(:,:,k)
         
     elseif ((obs_check==1)&&(k>k_obs))
-         
-         
+        k
+        pause
         [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
     end
     
@@ -402,7 +403,7 @@ for k=1:N_loops_fb                                                             %
 
     disp('P_cov k=')
     disp(P_cov(:,:,k))
-    
+    pause
     
     %   Animation: plot new UAV, Jammer and UAV trace at each iteration.
     %   See corresponding function for detail
@@ -431,7 +432,6 @@ plot(1:length(x_state) ,x_state(1,:)+deltax,'m')
 plot(1:length(x_state) ,x_state(1,:)-deltax,'m')
 
 hold off
-pause
 
 %%
 

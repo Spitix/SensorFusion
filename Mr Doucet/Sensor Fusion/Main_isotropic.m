@@ -31,7 +31,7 @@ clc; close all; clear;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% USER PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-filter = 'UKF';                     % Possible values : EKF, UKF, UKFna, PF
+filter = 'EKF';                     % Possible values : EKF, UKF, UKFna, PF
 particlesNumber = 20^2;             % A square number is better
 noRandom = true;                    % True to enable reproductibility
 anisotropic_case = false;            % Select isotropic/anisotropic case
@@ -299,7 +299,7 @@ d_uav=zeros(N_loops_fb,1);                                                  %   
 
 %   ------------------------    Main flyby loop --------------------------------
 for k=1:N_loops_fb                                                          %   Begin main 'for' loop: for all time steps
-    
+     
     %   UAV dynamics:
     x_vec_dot(k,:)=V_g*[cos(psi_all(k,1)) sin(psi_all(k,1))];               %   Update UAV speed vector with speed and heading
     
@@ -428,7 +428,10 @@ for k=1:N_loops_fb                                                          %   
                     error('Bad parameter for filter, see line 34');
             end
         end
-           
+
+        
+        x_t_vec
+        x_vec_all(1:k,:)
     %   Animation: plot new UAV, Jammer and UAV trace at each iteration.
     %   See corresponding function for detail
     if strcmp(filter,'PF')

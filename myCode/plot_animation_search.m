@@ -56,7 +56,7 @@ end
 n_pause=0.0001;
 pause(n_pause);
 
-end     %   End function
+ end     %   End function
 
 
 
@@ -127,9 +127,9 @@ uav_crosshair_drawing_mtx=[uav_crosshair_p1; uav_crosshair_p2; uav_crosshair_p3;
 
 hold on
 if isempty(h_uav_plot)
-    h_uav_plot=plot(uav_drawing_mtx(:,1),uav_drawing_mtx(:,2),uav_linstyle,'Linewidth',uav_linewidth,'EraseMode','normal');
-    h_uav_crosshair_1=plot(uav_crosshair_drawing_mtx(1:2,1),uav_crosshair_drawing_mtx(1:2,2),'-k','LineWidth',uav_linewidth/2,'EraseMode','normal');
-    h_uav_crosshair_2=plot(uav_crosshair_drawing_mtx(3:4,1),uav_crosshair_drawing_mtx(3:4,2),'-k','LineWidth',uav_linewidth/2,'EraseMode','normal');
+    h_uav_plot=plot(uav_drawing_mtx(:,1),uav_drawing_mtx(:,2),uav_linstyle,'Linewidth',uav_linewidth );
+    h_uav_crosshair_1=plot(uav_crosshair_drawing_mtx(1:2,1),uav_crosshair_drawing_mtx(1:2,2),'-k','LineWidth',uav_linewidth/2 );
+    h_uav_crosshair_2=plot(uav_crosshair_drawing_mtx(3:4,1),uav_crosshair_drawing_mtx(3:4,2),'-k','LineWidth',uav_linewidth/2 );
     h_uav_plot=[h_uav_plot h_uav_crosshair_1 h_uav_crosshair_2];
 else
     set(h_uav_plot(1),'XData',uav_drawing_mtx(:,1),'YData',uav_drawing_mtx(:,2));
@@ -152,7 +152,7 @@ global plot_scaling
 
 hold on
 if isempty(h_uav_trace_plot)
-    h_uav_trace_plot=plot(x_vec_all(:,1)/plot_scaling,x_vec_all(:,2)/plot_scaling,'-g','Linewidth',3,'EraseMode','normal');
+    h_uav_trace_plot=plot(x_vec_all(:,1)/plot_scaling,x_vec_all(:,2)/plot_scaling,'-g','Linewidth',3 );
 else
     set(h_uav_trace_plot,'XData',x_vec_all(:,1)/plot_scaling,'YData',x_vec_all(:,2)/plot_scaling);   
 end
@@ -221,9 +221,9 @@ jammer_crosshair_drawing_mtx=[jam_crosshair_p1; jam_crosshair_p2; jam_crosshair_
 
 hold on
 if isempty(h_jammer_plot)
-    h_jammer_plot=plot(jammer_drawing_mtx(:,1),jammer_drawing_mtx(:,2),jammer_linstyle,'Linewidth',jammer_linewidth,'EraseMode','normal');
-    h_jammer_crosshair_1=plot(jammer_crosshair_drawing_mtx(1:2,1),jammer_crosshair_drawing_mtx(1:2,2),'-k','LineWidth',jammer_linewidth/2,'EraseMode','normal');
-    h_jammer_crosshair_2=plot(jammer_crosshair_drawing_mtx(3:4,1),jammer_crosshair_drawing_mtx(3:4,2),'-k','LineWidth',jammer_linewidth/2,'EraseMode','normal');
+    h_jammer_plot=plot(jammer_drawing_mtx(:,1),jammer_drawing_mtx(:,2),jammer_linstyle,'Linewidth',jammer_linewidth );
+    h_jammer_crosshair_1=plot(jammer_crosshair_drawing_mtx(1:2,1),jammer_crosshair_drawing_mtx(1:2,2),'-k','LineWidth',jammer_linewidth/2 );
+    h_jammer_crosshair_2=plot(jammer_crosshair_drawing_mtx(3:4,1),jammer_crosshair_drawing_mtx(3:4,2),'-k','LineWidth',jammer_linewidth/2 );
     h_jammer_plot=[h_jammer_plot h_jammer_crosshair_1 h_jammer_crosshair_2];
 else
     set(h_jammer_plot(1),'XData',jammer_drawing_mtx(:,1),'YData',jammer_drawing_mtx(:,2));
@@ -247,7 +247,7 @@ uav_jammer_vec_p(2,:)=x_vec;
 
 hold on
 if isempty(h_uav_jammer_vec_plot)
-    h_uav_jammer_vec_plot=plot(uav_jammer_vec_p(:,1)/plot_scaling,uav_jammer_vec_p(:,2)/plot_scaling,'-k','Linewidth',1,'EraseMode','normal');
+    h_uav_jammer_vec_plot=plot(uav_jammer_vec_p(:,1)/plot_scaling,uav_jammer_vec_p(:,2)/plot_scaling,'-k','Linewidth',1 );
 else
     set(h_uav_jammer_vec_plot,'XData',uav_jammer_vec_p(:,1)/plot_scaling,'YData',uav_jammer_vec_p(:,2)/plot_scaling);   
 end
@@ -264,8 +264,8 @@ theta_data=0:(pi/180):2*pi;
 
 hold on
 if isempty(h_r_est_plot)
-    h_r_est_plot_l=plot((x_vec_all(:,1)+r_est_l(:,1).*cos(theta_data))/plot_scaling,(x_vec_all(:,2)+r_est_l(:,1).*sin(theta_data))/plot_scaling,'--m','Linewidth',2,'EraseMode','normal');
-    h_r_est_plot_h=plot((x_vec_all(:,1)+r_est_h(:,1).*cos(theta_data))/plot_scaling,(x_vec_all(:,2)+r_est_h(:,1).*sin(theta_data))/plot_scaling,'--m','Linewidth',2,'EraseMode','normal');
+    h_r_est_plot_l=plot((x_vec_all(:,1)+r_est_l(:,1).*cos(theta_data))/plot_scaling,(x_vec_all(:,2)+r_est_l(:,1).*sin(theta_data))/plot_scaling,'--m','Linewidth',2 );
+    h_r_est_plot_h=plot((x_vec_all(:,1)+r_est_h(:,1).*cos(theta_data))/plot_scaling,(x_vec_all(:,2)+r_est_h(:,1).*sin(theta_data))/plot_scaling,'--m','Linewidth',2 );
     h_r_est_plot=[h_r_est_plot_l h_r_est_plot_h];
 else
     set(h_r_est_plot(1),'XData',(x_vec_all(:,1)+r_est_l(:,1).*cos(theta_data))/plot_scaling,'YData',(x_vec_all(:,2)+r_est_l(:,1).*sin(theta_data))/plot_scaling);   
@@ -286,7 +286,7 @@ theta_data=0:(pi/180):2*pi;
 
 hold on
 if isempty(h_geo_est_plot)
-    h_geo_est_plot=plot((centre_geo_circle(:,1)+radius_geo_circle(:,1).*cos(theta_data))/plot_scaling,(centre_geo_circle(:,2)+radius_geo_circle(:,1).*sin(theta_data))/plot_scaling,'-m','Linewidth',2,'EraseMode','normal');
+    h_geo_est_plot=plot((centre_geo_circle(:,1)+radius_geo_circle(:,1).*cos(theta_data))/plot_scaling,(centre_geo_circle(:,2)+radius_geo_circle(:,1).*sin(theta_data))/plot_scaling,'-m','Linewidth',2);
     
 else
     set(h_geo_est_plot,'XData',(centre_geo_circle(:,1)+radius_geo_circle(:,1).*cos(theta_data))/plot_scaling,'YData',(centre_geo_circle(:,2)+radius_geo_circle(:,1).*sin(theta_data))/plot_scaling);   
@@ -306,8 +306,8 @@ global plot_scaling x_bnd y_bnd
 
 hold on
 if isempty(h_state_pos_est)
-    h_state_pos_est_1=plot([x_state(1,:)-(x_bnd*3/100) x_state(1,:)+(x_bnd*3/100)]/plot_scaling,[x_state(2,:) x_state(2,:)]/plot_scaling,'-.c','Linewidth',2,'EraseMode','normal');
-    h_state_pos_est_2=plot([x_state(1,:) x_state(1,:)]/plot_scaling,[x_state(2,:)-(y_bnd*3/100) x_state(2,:)+(y_bnd*3/100)]/plot_scaling,'-.c','Linewidth',2,'EraseMode','normal');
+    h_state_pos_est_1=plot([x_state(1,:)-(x_bnd*3/100) x_state(1,:)+(x_bnd*3/100)]/plot_scaling,[x_state(2,:) x_state(2,:)]/plot_scaling,'-.c','Linewidth',2);
+    h_state_pos_est_2=plot([x_state(1,:) x_state(1,:)]/plot_scaling,[x_state(2,:)-(y_bnd*3/100) x_state(2,:)+(y_bnd*3/100)]/plot_scaling,'-.c','Linewidth',2);
     h_state_pos_est=[h_state_pos_est_1 h_state_pos_est_2];
 else
     set(h_state_pos_est(1),'XData',[x_state(1,:)-(x_bnd*3/100) x_state(1,:)+(x_bnd*3/100)]/plot_scaling,'YData',[x_state(2,:) x_state(2,:)]/plot_scaling);   
@@ -330,7 +330,7 @@ hold on
 k_plot=(k_obs+floor((1/100)*N_loops_fb));
 
 if (C_loop>k_plot)
-    plot(x_state(1,C_loop-1:C_loop)/plot_scaling,x_state(2,C_loop-1:C_loop)/plot_scaling,'-.c','Linewidth',4,'EraseMode','normal'); 
+    plot(x_state(1,C_loop-1:C_loop)/plot_scaling,x_state(2,C_loop-1:C_loop)/plot_scaling,'-.c','Linewidth',4 ); 
 end
 
 end             %   End function
@@ -379,7 +379,7 @@ theta_data=0:(pi/180):2*pi;
 
 hold on
 if isempty(h_loiter_plot)
-    h_loiter_plot=plot((x_state(1,:)+r_d*cos(theta_data))/plot_scaling,(x_state(2,:)+r_d*sin(theta_data))/plot_scaling,'--g','Linewidth',2,'EraseMode','normal');
+    h_loiter_plot=plot((x_state(1,:)+r_d*cos(theta_data))/plot_scaling,(x_state(2,:)+r_d*sin(theta_data))/plot_scaling,'--g','Linewidth',2 );
     
 else
     set(h_loiter_plot,'XData',(x_state(1,:)+r_d*cos(theta_data))/plot_scaling,'YData',(x_state(2,:)+r_d*sin(theta_data))/plot_scaling);   
