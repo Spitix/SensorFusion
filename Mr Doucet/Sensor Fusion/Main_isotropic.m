@@ -33,7 +33,7 @@ clc; close all; clear;
 
 filter = 'EKF';                     % Possible values : EKF, UKF, UKFna, PF
 particlesNumber = 20^2;             % A square number is better
-noRandom = true;                    % True to enable reproductibility
+noRandom = false;                    % True to enable reproductibility
 anisotropic_case = false;            % Select isotropic/anisotropic case
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,13 +1,13 @@
 clear; close all; clc;
 
-nb_tests = 50;
+nb_tests = 1;
 filter = 'PF';
 sigma_P2 = 12000;
 randomness = false;
 anisotropic = true;
 
 indices = zeros(4,nb_tests);
-parfor i=1:nb_tests
+for i=1:nb_tests
     disp(i)
     [CQ,AI,covX,covY] = runFilter(filter,sigma_P2,randomness,anisotropic);
     indices(:,i)=[CQ;AI;covX;covY];

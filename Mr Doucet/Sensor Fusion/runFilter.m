@@ -618,6 +618,8 @@ for k=(N_loops_fb+1):N_loops_vf
             end
         end        
 end
+x_t_vec
+repmat(x_t_vec',1,size(x_state,2))
 delta = (x_state - repmat(x_t_vec',1,size(x_state,2))).^2;
 dist = sqrt(delta(1,:)+delta(2,:));
 CQ = sum(dist)/length(dist);
