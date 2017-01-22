@@ -26,7 +26,7 @@
 
 %   Workspace cleaning
 clc; close all; clear all;
- method='UKF';
+ method='EKF';
 
 global d2r
 
@@ -139,7 +139,7 @@ k_b=1.3806488*(10^(-23));                                                   %   
         
         %   Sensor power measurement standard deviation: Choose and disable
         %   lines for noise specification or for thermal noise approximation:
-        sig_P_r=-120;                                                       %   Gaussian noise affects Power measurement P_r: std sigma in [dBm]
+%         sig_P_r=-120;                                                       %   Gaussian noise affects Power measurement P_r: std sigma in [dBm]
         %sig_P_r=3*P_thermal_noise_dBm;                                     %   std sigma based on thermal noise [dBm]
         sig_P_r_W=P_thermal_noise/3;                                      %   std sigma based on thermal noise [W]
 %         sig_P_r_W=((10^(sig_P_r/10))/1000);                                 %   std sigma in [W]
@@ -166,7 +166,7 @@ k_b=1.3806488*(10^(-23));                                                   %   
             Q_KF=diag([((0))^2 ((0))^2]);                                   %   Process noise matrix: better to be small std for position and power
             R_KF=0;                                                         %   Specify noise on alpha: enable if wanted  
             x_state_ini=[x_bnd/2 y_bnd/2]';                               %   Initial state guess - Middle of the area is the first guess
-            P_cov_ini=6000^2*eye(2);                                        %   Initial state covariance guess - Change if needed 
+            P_cov_ini=12000*eye(2);                                        %   Initial state covariance guess - Change if needed 
        
              
         %    Parameters for EKF (UKF) rerun
@@ -223,16 +223,34 @@ P_r_filt_ratio=zeros(N_loops_fb,1);                                            %
 centre_geo_circle=zeros(N_loops_fb,2);                                         %   Centre of geolocation circle at instant k
 radius_geo_circle=zeros(N_loops_fb,1);                                         %   Radius of geolocation circle at instant k
 
-%   Filters
-    %   EKF or UKF
-    x_state=zeros(2,N_loops_fb);                                             	%   Updated EKF (UKF) state vector for all steps                               
-    P_cov=zeros(2,2,N_loops_fb);                                             	%   EKF (UKF) Covariance matrix for all
-    K_EKF_gain=zeros(2,N_loops_fb);                                           	%   Kalman gain storage
-    H_EKF=zeros(2,N_loops_fb); 
-    
-                                        
+%   Filters init
+    switch method
+        
+        case 'EKF'% Initialize Extended Kalman Filter
+            x_state             =       zeros(2,N_loops_fb);                %   Updated EKF (UKF) state vector for all steps
+            P_cov               =       zeros(2,2,N_loops_fb);              %   EKF (UKF) Covariance matrix for all
+            K_EKF_gain          =       zeros(2,N_loops_fb);                %   Kalman gain storage
+            H_EKF               =       zeros(2,N_loops_fb);                %   Linearisation of h storage
+            
+        case 'UKF'% Initialize Unscented Kalman Filter
+            x_state             =       zeros(2,N_loops_fb);                %   Updated EKF (UKF) state vector for all steps
+            P_cov               =       zeros(2,2,N_loops_fb);              %   EKF (UKF) Covariance matrix for all
+            K_UKF_gain          =       zeros(2,N_loops_fb);                %   Kalman gain storage
+            
+        case 'PF'% Initialize Particle Filter
+            N_part              =           1000 ;                          %   Number of Particles in the Particle Filter
+            x0_part             =           1.0*rand(N_part,1) ;            %   Particles of State Estimation
+            x_hat_part          =           mean( x0_part ) ;
+            ArrayPart           =           zeros( N_part, length(1:tf) ) ;
+            ArrayPart_Prior     =           zeros( N_part, length(1:tf) ) ;
+            x_part              =           x0_part ;                       % Assign Particles of State
+            x_Arr_PF            =           x_Arr ;                         % Array of x in Particle Filter
+            y_Arr_PF            =           y_Arr ;                         % Array of y in Particle Filter
+            x_hat_part_Arr      =           [ x_hat_part ] ;                % Array of Particles of State Estimation
+    end
+           
 %   Simulation data
-d_uav=zeros(N_loops_fb,1);                                                     %   Distance travelled by the UAV
+d_uav=zeros(N_loops_fb,1);                                                  %   Distance travelled by the UAV
 
 
 %%
@@ -289,6 +307,8 @@ for k=1:N_loops_fb                                                             %
     if (k>3*butter_order)                                                                           %   filter only works with sufficient data points
         P_r_filt=zeros(k,1);                                                                        %   Re-Initialise filtered data at each step
         P_r_filt(1:k,1)=filtfilt(b_butter,a_butter,P_r_meas(1:k,1));                                %   Filter noisy P_r_true at each new step
+        
+        % initialise the noise matrix
         if (P_r_filt(1,1)) && R_KF==0
            R_KF = (sig_P_r_W^2)/(P_r_filt(1,1)^2);
         end
@@ -346,7 +366,15 @@ for k=1:N_loops_fb                                                             %
                 case 'EKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
                 case 'UKF'
-            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_Dou(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
+                case 'PF'
+%                     ArrayPart_Pr  (:,k)=           x_part_prior ;
+%                     ArrayPart     (:,k)=           x_part ;
+%                     
+%                     % Save Data in Arrays for Later Plotting
+%                     x_Arr_PF        =           [ x_Arr_PF x(k) ] ;                                    % Save State Variables in Forms of Array
+%                     y_Arr_PF        =           [ y_Arr_PF y(k) ] ;                                    % Save Measurement Variables in Forms of Array
+%                     x_hat_part_Arr  =           [ x_hat_part_Arr x_hat_part ] ;                        % Save Particles of State in Forms of Array
 
             end
             if (re_run_bool==1)
@@ -364,7 +392,9 @@ for k=1:N_loops_fb                                                             %
                 case 'EKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
                case 'UKF'
-            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]             =UKF_Dou(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
+            [x_state(:,k),P_cov(:,:,k),K_UKF_gain(:,k)]             =UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
+               case 'PF'
+                   
            end
 %             if first_loop
 %                 x_state_k=x_state(:,k)
@@ -407,30 +437,41 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 figure(2),clf
-subplot(221),hold on
-    plot(x_t_vec(1)*ones(N_loops_fb,1)/plot_scaling,'--r')
-    plot(x_state(1,:)/plot_scaling,'k')
-%     sigma_x2=zeros(N_loops_fb,1);
-%     sigma_x2(:)=P_cov(1,1,:);
-%     sigma_x=sqrt(sigma_x2);
-%     plot(x_state(1,:)+sigma_x',':b')
-%     plot(x_state(1,:)-sigma_x',':b')
-    hold off
-subplot(222),hold on
-    plot(x_t_vec(2)*ones(N_loops_fb,1)/plot_scaling,'--r')
-    plot(x_state(2,:)/plot_scaling,'k')
-%     sigma_y2=zeros(N_loops_fb,1);
-%     sigma_y2(:)=P_cov(1,1,:);
-%     sigma_y=sqrt(sigma_x2);
-%     plot(x_state(2,:)+sigma_y',':b')
-%     plot(x_state(2,:)-sigma_y',':b')
-    hold off
-subplot(223), 
-plot(K_EKF_gain(1,:).*H_EKF(1,:))%,ylim([-1 1])
-subplot(224), 
-plot(K_EKF_gain(2,:).*H_EKF(2,:))%,ylim([-1 1])
+switch method
+    case 'EKF'
+        subplot(221),hold on
+            plot(x_t_vec(1)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(1,:)/plot_scaling,'k')
+                sigma_x2=zeros(N_loops_fb,1);
+                sigma_x2(:)=P_cov(1,1,:);
+                sigma_x=sqrt(sigma_x2);
+                plot((x_state(1,:)+2*sigma_x')/plot_scaling,':b')
+                plot((x_state(1,:)-2*sigma_x')/plot_scaling,':b')
+            hold off
+        subplot(222),hold on
+            plot(x_t_vec(2)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(2,:)/plot_scaling,'k')
+                sigma_y2=zeros(N_loops_fb,1);
+                sigma_y2(:)=P_cov(1,1,:);
+                sigma_y=sqrt(sigma_x2);
+                plot((x_state(2,:)+2*sigma_y')/plot_scaling,':b')
+                plot((x_state(2,:)-2*sigma_y')/plot_scaling,':b')
+            hold off
+        subplot(223), 
+        plot(K_EKF_gain(1,:).*H_EKF(1,:))%,ylim([-1 1])
+        subplot(224), 
+        plot(K_EKF_gain(2,:).*H_EKF(2,:))%,ylim([-1 1])
+    case 'UKF'
+        
+    case 'PF'
+%         % Compute RMS Value
+% if  k   ==  tf
+%     x_hat_part_RMS  =   sqrt( ( norm( x_Arr_PF - x_hat_part_Arr ) )^2 / tf ) ; % Particle Filter RMS Error
+%     disp( [ 'Particle Filter RMS Error = ', num2str(x_hat_part_RMS) ] ) ;       % Display Particle Filter RMS Error  
+% end
+end
  figure(1), 
- pause
+
 %%
 
 
@@ -591,8 +632,14 @@ for k=(N_loops_fb+1):N_loops_vf
 %             x_state(:,k) = x_t_vec;
             %%% students must uncomment the following line and design a EKF
             %%% and UKF
-            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
-                        
+            
+            switch method
+                case 'EKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
+                case 'UKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
+
+            end            
             re_run_bool=0;
           	div_EKF_bool=0;
 
@@ -607,7 +654,13 @@ for k=(N_loops_fb+1):N_loops_vf
             %%% students must uncomment the following line and design a EKF
             %%% and UKF
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
-            
+            switch method
+                case 'EKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
+                case 'UKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
+
+            end
         end        
     
         
@@ -632,26 +685,31 @@ end
 n_loop=N_loops_vf-N_loops_fb;
 range_vf=(N_loops_fb+1):N_loops_vf;
 figure(3),clf
-subplot(221),hold on
-    plot(x_t_vec(1)*ones(n_loop,1)/plot_scaling,'--r')
-    plot(x_state(1,range_vf)/plot_scaling,'k')
-%     sigma_x2=zeros(n_loop,1);
-%     sigma_x2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
-%     sigma_x=sqrt(sigma_x2);
-%     plot((x_state(1,(N_loops_fb+1):N_loops_vf)+sigma_x')/plot_scaling,':b')
-%     plot((x_state(1,(N_loops_fb+1):N_loops_vf)-sigma_x')/plot_scaling,':b')
-    hold off
-subplot(222),hold on
+subplot(231),hold on
+    p221_ref=plot(x_t_vec(1)*ones(n_loop,1)/plot_scaling,'--r')
+    p221_stateEstimate=plot(x_state(1,range_vf)/plot_scaling,'k')
+     if strcmp(method,'EKF')
+        sigma_x2=zeros(n_loop,1);
+        sigma_x2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
+        sigma_x=sqrt(sigma_x2);
+        p221_95conf=plot((x_state(1,(N_loops_fb+1):N_loops_vf)+2*sigma_x')/plot_scaling,':b')
+        plot((x_state(1,(N_loops_fb+1):N_loops_vf)-2*sigma_x')/plot_scaling,':b')
+     end
+    hold off, 
+    legend_result=legend([p221_ref,p221_stateEstimate,p221_95conf],'true state','state estimation with EKF','95% Confidence Region');
+subplot(232),hold on
     plot(x_t_vec(2)*ones(n_loop,1)/plot_scaling,'--r')
     plot(x_state(2,range_vf)/plot_scaling,'k')
-%     sigma_y2=zeros(n_loop,1);
-%     sigma_y2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
-%     sigma_y=sqrt(sigma_x2);
-%     plot((x_state(2,(N_loops_fb+1):N_loops_vf)+sigma_y')/plot_scaling,':b')
-%     plot((x_state(2,(N_loops_fb+1):N_loops_vf)-sigma_y')/plot_scaling,':b')
+    if strcmp(method,'EKF')
+        sigma_y2=zeros(n_loop,1);
+        sigma_y2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
+        sigma_y=sqrt(sigma_x2);
+        plot((x_state(2,(N_loops_fb+1):N_loops_vf)+2*sigma_y')/plot_scaling,':b')
+        plot((x_state(2,(N_loops_fb+1):N_loops_vf)-2*sigma_y')/plot_scaling,':b')
+    end
     hold off
-    subplot(223)
+    subplot(234)
 plot(K_EKF_gain(1,range_vf).*H_EKF(1,range_vf))
-subplot(224)
+subplot(235)
 plot(K_EKF_gain(2,range_vf).*H_EKF(2,range_vf))
  figure(2),figure(3) 

@@ -6,8 +6,6 @@ function [x_kp1_kp1, P_kp1_kp1, K] = UKF_form(s_1, s_k, h_0, alpha_k, x_k_k, P_k
 % alpha_k   :  Power ratio measured
 % x_k_k     :  previous estimation
 % P_k       :  previous covariance
-% F         :  model evolution (gradiant)
-% G         :  error process matrix
 % Q         :  process noise
 % R         :  measurement noise
 %
@@ -23,8 +21,8 @@ function [x_kp1_kp1, P_kp1_kp1, K] = UKF_form(s_1, s_k, h_0, alpha_k, x_k_k, P_k
 nState=length(x_k_k);
 nMeasure=1;
 
-Ew=zeros(nState,1);                                                                       % mean of the process noize
-Ev=(zeros(nMeasure,1));                                                                       % mean of the measurement noise
+Ew=zeros(nState,1);                                                         % mean of the process noize
+Ev=(zeros(nMeasure,1));                                                     % mean of the measurement noise
 
 %%%%%%%%%%%%%%%%%%%%%%% PREDICTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% augmented space
@@ -89,58 +87,48 @@ end
 
 
 function [sigma_0,sigma_points]=get_sigma_points(x,P,L)
-% typical values for a gaussian noise
-alpha=1e-3;
-kappa=1;
+    % typical values for a gaussian noise
+    alpha=1e-3;
+    kappa=1;
 
-% sigma points 
-sigma_points=ones(length(x),2*L);
-sigma_0=x;
- 
-delta_sigma=sqrtm((alpha^2*(L+kappa))*P);
+    % sigma points 
+    sigma_points=ones(length(x),2*L);
+    sigma_0=x;
 
-disp('sigma points ')
-delta_sigma(:,1)
-sigma_points(:,1)
+    delta_sigma=sqrtm((alpha^2*(L+kappa))*P);
 
-delta_sigma(:,1)
-for i=1:L
-    sigma_points(:,i)=x+delta_sigma(:,i);
-     sigma_points(:,i+L)=x-delta_sigma(:,i);
-%     figure(2),hold on, plot(sigma_points(:,i),'r+')
-end 
+    for i=1:L
+        sigma_points(:,i)=x+delta_sigma(:,i);
+         sigma_points(:,i+L)=x-delta_sigma(:,i);
+    end 
 
-% figure,hold on
-% for i=1:(2*L)
-%    plot(sigma_points(1,i),sigma_points(2,i),'+r') 
-% end
-% sigma_points= [ repmat(x,1,L)+sqrtm((alpha^2*(L+kappa))*P) repmat(x,1,L)-sqrtm((alpha^2*(L+kappa))*P)];
 end
 
 function [W_s_0,W_s,W_c_0,W_c]=get_sigma_wights(L)
-% typical values for a gaussian noise
-alpha= 1e-3;
-kappa=1;
-lambda=alpha^2*(L+kappa)-L;
-beta=2;
-
-W_s_0=lambda/(lambda+L);
-W_c_0=lambda/(lambda+L)+(1-alpha^2+beta);
-W_s=1/(2*(L+lambda))*ones(2*L,1);
-W_c=W_s;
+    % typical values for a gaussian noise
+    alpha= 1e-3;
+    kappa=1;
+    lambda=alpha^2*(L+kappa)-L;
+    beta=2;
+    %weight for X_0
+    W_s_0=lambda/(lambda+L);                                                
+    W_c_0=lambda/(lambda+L)+(1-alpha^2+beta);
+    % weights for each sigma points
+    W_s=1/(2*(L+lambda))*ones(2*L,1);
+    W_c=W_s;
 
 end
 
 function [x_combined,P_combined]=combine_points(x_0,x,W_s_0,W_s,W_c_0,W_c)
-n=length(x); 
-x_combined=W_s_0*x_0;
-
-for i=1:(n)
+    n=length(x); 
+    x_combined=W_s_0*x_0
+    for i=1:n
     x_combined=x_combined+W_s(i)*x(:,i);
-end
-P_combined=W_c_0*(x_0-x_combined)*(x_0-x_combined)';
-for i=1:(n)
-     
-    P_combined=P_combined+W_c(i)*(x(:,i)-x_combined)*(x(:,i)-x_combined)';
-end
+    end
+    % init P combined
+    P_combined=W_c_0*(x_0-x_combined)*(x_0-x_combined)';
+    % sum for each sigma points (columns)
+    for i=1:(n)
+        P_combined=P_combined+W_c(i)*(x(:,i)-x_combined)*(x(:,i)-x_combined)';
+    end
 end

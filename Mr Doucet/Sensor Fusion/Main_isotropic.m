@@ -197,7 +197,7 @@ k_b=1.3806488*(10^(-23));                                                   %   
             case 'PF'
                 x_state_ini=[x_bnd/2 1*y_bnd/2]';
                 % generate particles cloud
-                particles = generateParticles(particlesNumber,x_bnd);  %works only for square area
+                particles = generateParticles(particlesNumber,x_bnd);       %works only for square area
                 R_KF=0;
             otherwise
             %   EKF (UKF) initialisation:

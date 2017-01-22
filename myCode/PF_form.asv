@@ -1,0 +1,55 @@
+function [x_hat_part, x_part_prior,x_part] = PF_form( alpha_k,x_part,Q, R)
+% Input %%%%%%%%%%%%%%%%%%%%%%%%
+% s_1       :  UAV first position
+% s_k       :  UAV position
+% h_0       :  altitude
+% alpha_k   :  Power ratio measured
+% Q         :  process noise
+% R         :  measurement noise
+%
+% Output %%%%%%%%%%%%%%%%%%%%%%%
+% x_kp1_kp1 :  new estimate
+% P_kp1_kp1 :  new covariance estimate
+% K         :  Kalman gain
+%
+% Notation %%%%%%%%%%%%%%%%%%%%%
+% k_k       : k|k
+% kp1_k     : k+1|k
+
+
+%%Input 
+% x_part
+
+% Particle Filter
+x_part_prior=zeros(size(x_part));
+q=zeros(size(x_part));
+for i   =   1 : N % for each particle
+    x_part_prior(i) =           f(x_part(i)) + sqrt(Q) * randn ;            % Perform the Time Propagation Step to obtain a priori Particles
+    y_part          =           h(x_part_prior(i),s_1, s_k, h_0) ;          % Compute Measurement Coditioned on Each Particles
+    v_hat           =           alpha_k - y_part ;                             % Error of Measurement
+    q(i)            =           (1/sqrt(R)/sqrt(2*pi))* exp( -v_hat^2/2/R);
+end
+
+% Normalize the Likelihood of Each a Priori Estimate
+q_norm        =           q/sum(q) ;                                        % Normalize the Likelihood of Each a Priori Estimate   
+
+
+% Resample.
+for i=1:N
+    u  = rand ;                                                             % Uniform Random Number Between 0 and 1
+    qm   = 0 ;                                                              % Accumulated sum of the Likelihood of Each a Priori Estimate
+    for j=1:N
+        qm  = qm + q_norm(j) ;                                              % Compute the Likelihood of Each a Priori Estimate up to j
+        if  qm >= u    
+            % Resample
+            x_part(i) = x_part_prior(j) ;                                      
+            break ;
+        end
+    end
+end
+
+% The Particle Filter Estimate is the Mean of the Particles
+x_hat_part      =           mean(x_part) ;
+
+end
+
