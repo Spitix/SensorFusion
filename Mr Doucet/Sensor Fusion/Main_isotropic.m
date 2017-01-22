@@ -31,7 +31,7 @@ clc; close all; clear;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%% USER PARAMETERS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-filter = 'EKF';                     % Possible values : EKF, UKF, UKFna, PF
+filter = 'UKF';                     % Possible values : EKF, UKF, UKFna, PF
 particlesNumber = 20^2;             % A square number is better
 noRandom = false;                    % True to enable reproductibility
 anisotropic_case = false;            % Select isotropic/anisotropic case
@@ -398,7 +398,7 @@ for k=1:N_loops_fb                                                          %   
             % Run filter
             switch filter
                 case 'EKF'
-                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
+                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
                 case 'UKF'
                     [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
                 case 'UKFna'
@@ -417,7 +417,7 @@ for k=1:N_loops_fb                                                          %   
         elseif ((obs_check==1)&&(k>k_obs))                                  %   If intersections have begun & EKF (UKF) has alreay started
             switch filter
                 case 'EKF'
-                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
+                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
                 case 'UKF'
                     [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
                 case 'UKFna'
@@ -430,8 +430,7 @@ for k=1:N_loops_fb                                                          %   
         end
 
         
-        x_t_vec
-        x_vec_all(1:k,:)
+         
     %   Animation: plot new UAV, Jammer and UAV trace at each iteration.
     %   See corresponding function for detail
     if strcmp(filter,'PF')
@@ -452,9 +451,30 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%% Students must analyse the performance of their own filters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
+figure(2),clf
+subplot(221),hold on
+    plot(x_t_vec(1)*ones(N_loops_fb,1)/plot_scaling,'--r')
+    plot(x_state(1,:)/plot_scaling,'k')
+%     sigma_x2=zeros(N_loops_fb,1);
+%     sigma_x2(:)=P_cov(1,1,:);
+%     sigma_x=sqrt(sigma_x2);
+%     plot(x_state(1,:)+sigma_x',':b')
+%     plot(x_state(1,:)-sigma_x',':b')
+    hold off
+subplot(222),hold on
+    plot(x_t_vec(2)*ones(N_loops_fb,1)/plot_scaling,'--r')
+    plot(x_state(2,:)/plot_scaling,'k')
+%     sigma_y2=zeros(N_loops_fb,1);
+%     sigma_y2(:)=P_cov(1,1,:);
+%     sigma_y=sqrt(sigma_x2);
+%     plot(x_state(2,:)+sigma_y',':b')
+%     plot(x_state(2,:)-sigma_y',':b')
+%     hold off
+% subplot(223), 
+% plot(K_EKF_gain(1,:).*H_EKF(1,:))%,ylim([-1 1])
+% subplot(224), 
+% plot(K_EKF_gain(2,:).*H_EKF(2,:))%,ylim([-1 1])
+%  figure(1), 
 %%
 %   -----------------------------------------------------------------------
 %   --    Initialise Vector field simulation parameters from flyby phase   -
@@ -642,7 +662,7 @@ for k=(N_loops_fb+1):N_loops_vf
         if (re_run_bool==1)                                                 %   If EKF (UKF) has diverged and needs to reinitialised
             switch filter
                 case 'EKF'
-                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
+                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
                 case 'UKF'
                     [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
                 case 'UKFna'
@@ -659,7 +679,7 @@ for k=(N_loops_fb+1):N_loops_vf
         elseif (re_run_bool==0)                                             %   Normal operation condition: the EKF (UKF) has converged and remains on target
             switch filter
                 case 'EKF'
-                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
+                    [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]=EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
                 case 'UKF'
                     [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
                 case 'UKFna'

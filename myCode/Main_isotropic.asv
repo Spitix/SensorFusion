@@ -228,7 +228,6 @@ radius_geo_circle=zeros(N_loops_fb,1);                                         %
     x_state=zeros(2,N_loops_fb);                                             	%   Updated EKF (UKF) state vector for all steps                               
     P_cov=zeros(2,2,N_loops_fb);                                             	%   EKF (UKF) Covariance matrix for all
     K_EKF_gain=zeros(2,N_loops_fb);                                           	%   Kalman gain storage
-    K_UKF_gain=zeros(2,N_loops_fb);                                           	%   Kalman gain storage
     H_EKF=zeros(2,N_loops_fb); 
     
                                         
@@ -347,7 +346,7 @@ for k=1:N_loops_fb                                                             %
                 case 'EKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
                 case 'UKF'
-            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_Dou(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
 
             end
             if (re_run_bool==1)
@@ -365,7 +364,7 @@ for k=1:N_loops_fb                                                             %
                 case 'EKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
                case 'UKF'
-            [x_state(:,k),P_cov(:,:,k),K_UKF_gain(:,k)]             =UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]             =UKF_Dou(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
            end
 %             if first_loop
 %                 x_state_k=x_state(:,k)

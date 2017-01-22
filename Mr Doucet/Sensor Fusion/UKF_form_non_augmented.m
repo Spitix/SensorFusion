@@ -7,7 +7,7 @@ function [x_state, P_cov, K_UKF_gain] = UKF_form_non_augmented(s_1,s_k,h_0,alpha
     lambda = alpha^2*(L+kappa)-L;
     
     sigmas= [x_state_ini repmat(x_state_ini,1,L)+chol((alpha^2*(L+kappa))*P_cov_ini) repmat(x_state_ini,1,L)-chol((alpha^2*(L+kappa))*P_cov_ini)];
-    weights_state = [lambda/(alpha^2*(L+kappa)); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)];
+    weights_state = [lambda/(alpha^2*(L+kappa)); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)]
     weights_cov = [lambda/(alpha^2*(L+kappa))+(1-alpha^2+beta); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)];
     
     %% pass sigmas through dynamics model

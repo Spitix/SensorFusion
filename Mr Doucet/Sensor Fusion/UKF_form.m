@@ -18,7 +18,7 @@ function [x_state, P_cov, K_UKF_gain] = UKF_form(s_1,s_k,h_0,alpha_k,x_state_ini
     s_k_aug = [s_k zeros(1,sizeSS) zeros(1,sizeMeas)];
     
     sigmas= [x_aug repmat(x_aug,1,L)+sqrtm((alpha^2*(L+kappa))*P_aug) repmat(x_aug,1,L)-sqrtm((alpha^2*(L+kappa))*P_aug)];
-    weights_state = [lambda/(alpha^2*(L+kappa)); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)];
+    weights_state = [lambda/(alpha^2*(L+kappa)); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)]
     weights_cov = [lambda/(alpha^2*(L+kappa))+(1-alpha^2+beta); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)];
     
     %% pass sigmas through dynamics model
@@ -49,8 +49,8 @@ function [x_state, P_cov, K_UKF_gain] = UKF_form(s_1,s_k,h_0,alpha_k,x_state_ini
     for i=1:2*L+1
        P_xy = P_xy + weights_cov(i)*((sigmas_x(:,i)-x_temp)*(sigmas_y(:,i)-y_temp)');
     end
-    
-    K_UKF_gain = P_xy/P_ytemp;
+    P_xy
+    K_UKF_gain = P_xy/P_ytemp
     x_state = x_temp+K_UKF_gain*(alpha_k-y_temp);
     P_cov = (P_xtemp - K_UKF_gain*P_ytemp*K_UKF_gain');
     

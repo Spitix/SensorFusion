@@ -1,0 +1,176 @@
+% function [x_state, P_cov, K_UKF_gain] = UKF_form(s_1,s_k,h_0,alpha_k,x_state_ini,P_cov_ini,Q_KF,R_KF)
+%     %% generate sigma points
+%     
+%     global sizeSS sizeMeas;
+%     sizeSS = max(size(x_state_ini));
+%     sizeMeas = max(size(alpha_k));
+%     
+%     L = 2*sizeSS+sizeMeas;
+%     alpha = 10^-3;
+%     beta = 2;
+%     kappa = 0;
+%     lambda = alpha^2*(L+kappa)-L;
+%     
+%     % augment the state-space
+%     x_aug = [x_state_ini ; zeros(sizeSS,1); zeros(sizeMeas,1)];
+%     P_aug = blkdiag(P_cov_ini,Q_KF,R_KF);
+%     s_1_aug = [s_1 zeros(1,sizeSS) zeros(1,sizeMeas)];
+%     s_k_aug = [s_k zeros(1,sizeSS) zeros(1,sizeMeas)];
+%     
+%     sigmas= [x_aug repmat(x_aug,1,L)+sqrtm((alpha^2*(L+kappa))*P_aug) repmat(x_aug,1,L)-sqrtm((alpha^2*(L+kappa))*P_aug)];
+%     weights_state = [lambda/(alpha^2*(L+kappa)); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)];
+%     weights_cov = [lambda/(alpha^2*(L+kappa))+(1-alpha^2+beta); 1/(2*(alpha^2*(L+kappa)))*ones(2*L,1)];
+%     
+%     %% pass sigmas through dynamics model
+%     sigmas_x = f(sigmas); % no dynamics --> identity
+%     % estimate mean
+%     x_temp = sigmas_x*weights_state;
+%     % estimate covariance
+%     P_xtemp = zeros(L);
+%     for i=1:2*L+1
+%         P_xtemp = P_xtemp + weights_cov(i)*(sigmas_x(:,i)-x_temp)*(sigmas_x(:,i)-x_temp)';
+%     end
+%     P_xtemp = P_xtemp + blkdiag(Q_KF,zeros(sizeSS),zeros(sizeMeas));
+%     
+%     %% pass sigmas_x through non-linear measurement function
+%     sigmas_y = h(sigmas_x,s_1_aug',s_k_aug',h_0);
+%     
+%     % estimate mean
+%     y_temp = sigmas_y*weights_state;
+%     % estimate variance
+%     P_ytemp = zeros(sizeMeas);
+%     for i=1:2*L+1
+%         P_ytemp = P_ytemp + weights_cov(i)*(sigmas_y(:,i)-y_temp)*(sigmas_y(:,i)-y_temp)';
+%     end
+%     P_ytemp = P_ytemp + R_KF;
+%     
+%     %% finish UKF algorithm
+%     P_xy = zeros(L,sizeMeas);
+%     for i=1:2*L+1
+%        P_xy = P_xy + weights_cov(i)*((sigmas_x(:,i)-x_temp)*(sigmas_y(:,i)-y_temp)');
+%     end
+%     
+%     K_UKF_gain = P_xy/P_ytemp;
+%     x_state = x_temp+K_UKF_gain*(alpha_k-y_temp);
+%     P_cov = (P_xtemp - K_UKF_gain*P_ytemp*K_UKF_gain');
+%     
+%     % extract relevant informations for output
+%     K_UKF_gain = K_UKF_gain(1:sizeSS);
+%     x_state = x_state(1:sizeSS);
+%     P_cov = P_cov(1:sizeSS,1:sizeSS);
+%     
+% end
+function [x_kp1_kp1, P_kp1_kp1, K] = UKF_form(s_1, s_k, h_0, alpha_k, x_k_k, P_k_k, Q, R)
+% Input %%%%%%%%%%%%%%%%%%%%%%%%
+% s_1       :  UAV first position
+% s_k       :  UAV position
+% h_0       :  altitude
+% alpha_k   :  Power ratio measured
+% x_k_k     :  previous estimation
+% P_k       :  previous covariance
+% F         :  model evolution (gradiant)
+% G         :  error process matrix
+% Q         :  process noise
+% R         :  measurement noise
+%
+% Output %%%%%%%%%%%%%%%%%%%%%%%
+% x_kp1_kp1 :  new estimate
+% P_kp1_kp1 :  new covariance estimate
+% K         :  Kalman gain
+%
+% Notation %%%%%%%%%%%%%%%%%%%%%
+% k_k       : k|k
+% kp1_k     : k+1|k
+
+
+Ew=[0 ;0];                                                                       % mean of the process noize
+Ev=[0; 0];                                                                       % mean of the measurement noise
+%%%%%%%%%%%%%%%%%%%%%%% PREDICTION %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% augmented space
+xa_k_k=[x_k_k; Ew];
+Pa_k_k=blkdiag(P_k_k ,Q)
+Q
+L=length(xa_k_k);                                                           % dimention of the augmented state
+%% sigma points
+% sigma points 
+[sigma_points_k_k_0,sigma_points_k_k]=get_sigma_points(xa_k_k,Pa_k_k);
+% weights
+[W_s_0,W_s,W_c_0,W_c]=get_sigma_wights(L);
+
+% propagation of sigma points through f
+sigma_points_kp1_k_0=f(sigma_points_k_k_0);
+sigma_points_kp1_k=f(sigma_points_k_k);
+
+%% combination
+
+[xa_kp1_k_hat,P_kp1_k]=combine_points(sigma_points_kp1_k_0,sigma_points_kp1_k,W_s_0,W_s,W_c_0,W_c);
+%%%%%%%%%%%%%%%%%%%%%%% UPDATE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% augmented space
+xa_kp1_k=[xa_kp1_k_hat(1:(L-1),:) ; Ev];
+Pa_kp1_k=blkdiag(P_kp1_k(1:(L-1),1:(L-1)),R);
+L=length(xa_kp1_k);                                                         % dimention of the augmented state
+% weights
+[W_s_0,W_s,W_c_0,W_c]=get_sigma_wights(L);
+% sigma points 
+[sigma_points_kp1_k_0,sigma_points_kp1_k]=get_sigma_points(xa_kp1_k,Pa_kp1_k);
+% propagation of sigma points through h
+gamma_k_0=h(sigma_points_kp1_k_0,s_1, s_k, h_0);
+gamma_k=zeros(size(sigma_points_kp1_k));
+for i=1:(2*L)
+    gamma_k(i,:)=h(sigma_points_kp1_k(i,:),s_1, s_k, h_0);
+end
+%% combination
+[z_k_hat,P_zk_zk]=combine_points(gamma_k_0,gamma_k,W_s_0,W_s,W_c_0,W_c);
+
+% state-measurement cross-covariance matrix
+P_xk_zk=sum(W_c.*(sigma_points_kp1_k-xa_kp1_k)*(gamma_k-z_k_hat)')+W_c_0*(sigma_points_kp1_k_0-xa_kp1_k)*(gamma_k_0-z_k_hat)';
+
+% UKF Kalman gain
+K=P_xk_zk*P_zk_zk^(-1);
+
+% state estimate updated
+x_kp1_kp1=xa_kp1_k_hat(1:(L-1),:)+K*(alpha_k-z_k_hat);
+% covariance update
+P_kp1_kp1=P_kp1_k-K*P_zk_zk*K';
+end
+
+
+
+
+function [sigma_0,sigma_points]=get_sigma_points(x,P)
+L=length(x); 
+% typical values for a gaussian noise
+alpha=1e-3;
+kappa=1;
+lambda=alpha^2*(L-kappa)-L;
+
+% sigma points 
+sigma_points=ones(2*L,length(x));
+sigma_0=x;
+delta_sigma=sqrtm((L+lambda)*P);
+
+for i=1:L
+    sigma_points(i,:)=x+delta_sigma(:,i);
+end 
+for i=(L+1):(2*L)
+    sigma_points(i,:)=x-delta_sigma(:,i-L);
+end
+end
+
+function [W_s_0,W_s,W_c_0,W_c]=get_sigma_wights(L)
+% typical values for a gaussian noise
+alpha=1e-3;
+kappa=1;
+lambda=alpha^2*(L-kappa)-L;
+beta=2;
+
+W_s_0=lambda/(L+lambda);
+W_c_0=lambda/(L+lambda)+(1-alpha^2+beta);
+W_s=lambda/(2*(L+lambda))*ones(2*L,1);
+W_c=W_s;
+end
+
+function [x_comined,P_combined]=combine_points(x_0,x,W_s_0,W_s,W_c_0,W_c)
+x_comined=sum(W_s.*x)+W_s_0*x_0;
+P_combined=sum(W_c.*(x-x_comined)*(x-x_comined)')+W_c_0*(x_0-x_comined)*(x_0-x_comined)';
+end
