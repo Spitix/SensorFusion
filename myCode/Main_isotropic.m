@@ -239,10 +239,10 @@ radius_geo_circle=zeros(N_loops_fb,1);                                         %
             
         case 'PF'% Initialize Particle Filter
             N_part              =           1000 ;                          %   Number of Particles in the Particle Filter
-            x0_part             =           12000*rand(N_part,2) ;            %   Particles of State Estimation
-            x_hat_part          =           mean( x0_part ) ;
-            P_cov               =           zeros(2,2,N_loops_fb); 
-            x_part              =           x0_part ;                       % Assign Particles of State
+            x_part_ini             =           12000*rand(N_part,2) ;            %   Particles of State Estimation
+            x_hat_part          =           mean( x_part_ini ) ;
+            P_cov               =           zeros(2,2,N_loops_fb);          % to avoid annimation error
+            x_part              =           x_part_ini ;                       % Assign Particles of State
 %             x_Arr_PF            =           x_Arr ;                       % Array of x in Particle Filter
 %             y_Arr_PF            =           y_Arr ;                       % Array of y in Particle Filter
              x_state             =       zeros(2,N_loops_fb);               %   Updated PF state vector for all steps
@@ -368,7 +368,7 @@ for k=1:N_loops_fb                                                             %
                 case 'UKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
                 case 'PF'
-             [x_state(:,k), x_part_prior,x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF)
+             [x_state(:,k), x_part_prior,x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
 %                     ArrayPart_Pr  (:,k)=           x_part_prior ;
 %                     ArrayPart     (:,k)=           x_part ;
 %                     
@@ -420,7 +420,8 @@ for k=1:N_loops_fb                                                             %
         
         
     
-        
+%     figure(5), histogram(x_part(:,1))
+%     figure(1),
     %   Animation: plot new UAV, Jammer and UAV trace at each iteration.
     %   See corresponding function for detail
     plot_animation_search(N_plots,k,x_t_vec,x_vec_all(1:k,:),psi_all(k,1),r_est_l(k,1),r_est_h(k,1),centre_geo_circle(k,:),radius_geo_circle(k,1),x_state(:,1:k),k_obs,N_loops_fb,P_cov(:,:,k),p_e,0,psi_jammer);
@@ -466,6 +467,7 @@ switch method
     case 'UKF'
         
     case 'PF'
+        
 %         % Compute RMS Value
 % if  k   ==  tf
 %     x_hat_part_RMS  =   sqrt( ( norm( x_Arr_PF - x_hat_part_Arr ) )^2 / tf ) ; % Particle Filter RMS Error
@@ -516,10 +518,18 @@ radius_geo_circle=[radius_geo_circle ; zeros(N_loops_vf-N_loops_fb,1)];     %   
 %   Filters
     %   EKF (UKF)
     r_est=zeros(N_loops_vf,1);                                              %   Only used in the second part (VF)
+    
     x_state=[x_state zeros(2,N_loops_vf-N_loops_fb)];                    	%   Updated EKF (UKF) state vector for all steps                               
+    switch method 
+        case 'EKF'
     P_cov(:,:,N_loops_fb+1:N_loops_vf)=0;                                   %   EKF (UKF) Covariance matrix for all    
     K_EKF_gain=[K_EKF_gain zeros(2,N_loops_vf-N_loops_fb)];              	%   Kalman gain storage
-                                        
+        case 'UKF'
+    P_cov(:,:,N_loops_fb+1:N_loops_vf)=0;                                   %   EKF (UKF) Covariance matrix for all    
+    K_EKF_gain=[K_EKF_gain zeros(2,N_loops_vf-N_loops_fb)];              	%   Kalman gain storage
+        case 'PF'
+            P_cov(:,:,N_loops_fb+1:N_loops_vf)=0                            % to avoid annimation error
+    end
 %   Simulation data
 d_uav=[d_uav ; zeros(N_loops_vf-N_loops_fb,1)];                           	%   Distance travelled by the UAV
 d_uav(N_loops_fb+1,1)=d_uav(N_loops_fb,:)+D_T*sqrt(x_vec_dot(N_loops_fb,:)*(x_vec_dot(N_loops_fb,:))');
@@ -641,7 +651,7 @@ for k=(N_loops_fb+1):N_loops_vf
                 case 'UKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
                 case 'PF'
-             [x_state(:,k), x_part_prior,x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF);
+             [x_state(:,k), x_part_prior,x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
             end            
             re_run_bool=0;
           	div_EKF_bool=0;

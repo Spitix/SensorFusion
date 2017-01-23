@@ -126,7 +126,10 @@
         y_Arr_PF        =           [ y_Arr_PF y(k) ] ;                                    % Save Measurement Variables in Forms of Array
         x_hat_part_Arr  =           [ x_hat_part_Arr x_hat_part ] ;                        % Save Particles of State in Forms of Array
         
-        % Compute RMS Value
+        
+        
+    end
+ % Compute RMS Value
         if  k   ==  tf
         
             x_hat_part_RMS  =   sqrt( ( norm( x_Arr_PF - x_hat_part_Arr ) )^2 / tf ) ; % Particle Filter RMS Error
@@ -134,80 +137,11 @@
             
         end
         
-    end
- 
- %///////////////////////////////////////////////////////////////////////////
- %.. Execute the Extended Kalman Filter                                     %
- %///////////////////////////////////////////////////////////////////////////
- 
- %.. Filter Parameter Setting
-
-    x_hat               =           x0 ;                                                % Initial State Estimate
-
-%.. Initialize Extended Kalman Filter
-
-    x_Arr_EKF           =           x_Arr ;                                             % Array of x in EKF
-    y_Arr_EKF           =           y_Arr ;                                             % Array of y in EKF
-    x_hat_Arr           =           [ x0 ] ;                                            % Array of Estimation of x in EKF
-    P                   =           P0 ; 
-    P_Arr               =           [ P ] ;                                             % Array of Estimation Covariance for the Kalman Filter
-    P_bar               =           zeros( length(1:tf), 1 )  ; 
-    x_bar               =           zeros( length(1:tf), 1 ) ; 
-    
-%.. Execute Extend Kalman Filter
-
-    for k   =   1 : tf
-
-        % Extended Kalman Filter
-        F               =           aa + bb * ( 1 - x_hat^2 ) / ( 1 + x_hat^2 )^2 ;    % Linearized System Equation
-        P               =           F * P * F' + Q ;                                    % Update of Estimation Covariance
-        P_bar(k)        =           P ; 
-        H               =           3 * x_hat^2 / ee ;                                        % Linearized Measurement Sensitivity Matrix
-        K               =           P * H' * ( H * P * H' + R )^(-1) ;                  % Compute Kalman Gain
-        x_hat           =           aa * x_hat + bb * x_hat / ( 1 + x_hat^2 )...       % The Predicted State Estimate
-                                    + cc * sin( dd * ( k - 1 ) ) ;
-        x_bar           =           x_hat ;                         
-        x_hat           =           x_hat + K * ( y(k) - x_hat^3 / ee ) ;               % The Predicted Estimate on Measurement
-        P               =           ( 1 - K * H ) * P ;                                 % Update Covariance Matrix
-        
-     
-        % Save Data in Arrays for Later Plotting
-        x_Arr_EKF       =           [ x_Arr_EKF x(k) ] ;                                % Save State Variables in Forms of Array
-        y_Arr_EKF       =           [ y_Arr_EKF y(k) ] ;                                % Save Measurement Variables in Forms of Array
-        x_hat_Arr       =           [ x_hat_Arr x_hat ] ;                               % Save Estimation of State in Forms of Array
-        P_Arr           =           [ P_Arr P ] ;                                       % Save Error Covariance in Forms of Array
-        
-        % Compute RMS Value
-        if  k   ==  tf
-        
-            x_hat_RMS   =           sqrt( ( norm( x_Arr_EKF - x_hat_Arr ) )^2 / tf ) ;  % Extended Kalman Filter RMS Error
-            disp( [ 'Extended Kalman Filter RMS Error = ', num2str(x_hat_RMS) ] ) ;     % Display Extended Kalman Filter RMS Error
-            
-        end
-        
-    end
-        
 %.. Plot the Estimated State using PF and EKF
 
     t                   =           0 : tf ;
     
-    % Plot the Extended Kalman Filter
-    figure ;
-    plot(t, x_Arr_EKF, 'b-') ;                                                          % Plot True State
-    hold on ;
-    plot(t, x_hat_Arr, 'k-') ;                                                          % Plot EKF Estimate
-    hold on ;
-    plot(t, x_hat_Arr-2*sqrt(P_Arr), 'r:') ;                                            % Plot 95% Confidence Region
-    hold on ;
-    plot(t, x_hat_Arr+2*sqrt(P_Arr), 'r:') ;                                            % Plot 95% Confidence Region
-    axis( [ 0 tf -40 40 ] ) ;
-    grid on ;
-    set(gca, 'FontSize', 12) ;
-    set(gcf, 'Color', 'White') ;
-    xlabel('Time Step ') ;
-    ylabel('State') ;
-    legend('True State', 'EKF Estimate', '95% Confidence Region') ;
-    
+   
 %     Plot the Particle Filter    
     figure;
     plot(t, x_Arr_PF, 'b-') ;                                                           % Plot True State
