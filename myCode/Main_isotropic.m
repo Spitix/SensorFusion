@@ -163,7 +163,13 @@ k_b=1.3806488*(10^(-23));                                                   %   
             %   EKF (UKF) initialisation:
             F_KF=eye(2);                                                    %   Dynamics matrix: unity because model is static 
             G_KF=eye(1);                                                    %   Noise matrix: unity for pure additive gaussian noise
-            Q_KF=diag([((0))^2 ((0))^2]);                                   %   Process noise matrix: better to be small std for position and power
+            switch method
+                case 'PF'
+                    Q_KF=diag([((5))^2 ((5))^2]); 
+                otherwise
+                    
+                    Q_KF=diag([((0.01))^2 ((0.01))^2]);                                   %   Process noise matrix: better to be small std for position and power
+            end
             R_KF=0;                                                         %   Specify noise on alpha: enable if wanted  
             x_state_ini=[x_bnd/2 y_bnd/2]';                               %   Initial state guess - Middle of the area is the first guess
             P_cov_ini=12000*eye(2);                                        %   Initial state covariance guess - Change if needed 
@@ -242,6 +248,7 @@ radius_geo_circle=zeros(N_loops_fb,1);                                         %
             x_part_ini             =           12000*rand(N_part,2) ;            %   Particles of State Estimation
             x_hat_part          =           mean( x_part_ini ) ;
             P_cov               =           zeros(2,2,N_loops_fb);          % to avoid annimation error
+            
             x_part              =           x_part_ini ;                       % Assign Particles of State
 %             x_Arr_PF            =           x_Arr ;                       % Array of x in Particle Filter
 %             y_Arr_PF            =           y_Arr ;                       % Array of y in Particle Filter
@@ -368,7 +375,7 @@ for k=1:N_loops_fb                                                             %
                 case 'UKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
                 case 'PF'
-             [x_state(:,k), x_part_prior,x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
+             [x_state(:,k),x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
 %                     ArrayPart_Pr  (:,k)=           x_part_prior ;
 %                     ArrayPart     (:,k)=           x_part ;
 %                     
@@ -396,7 +403,7 @@ for k=1:N_loops_fb                                                             %
                case 'UKF'
             [x_state(:,k),P_cov(:,:,k),K_UKF_gain(:,k)]             =UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
                case 'PF'
-             [x_state(:,k), x_part_prior,x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF);
+             [x_state(:,k),x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF);
            end
 %             if first_loop
 %                 x_state_k=x_state(:,k)
@@ -651,7 +658,7 @@ for k=(N_loops_fb+1):N_loops_vf
                 case 'UKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
                 case 'PF'
-             [x_state(:,k), x_part_prior,x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
+             [x_state(:,k), x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
             end            
             re_run_bool=0;
           	div_EKF_bool=0;
@@ -673,7 +680,7 @@ for k=(N_loops_fb+1):N_loops_vf
                 case 'UKF'
             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]             = UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
                 case 'PF'
-            [x_state(:,k), x_part_prior,x_part]                     = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF);
+            [x_state(:,k), x_part]                     = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF);
             end
         end        
     

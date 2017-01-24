@@ -1,0 +1,24 @@
+clc; close all; clear all;
+ method='UKF';
+ n_sim=100;
+ for i_simulation=1:n_sim
+     clc
+     disp(['──sim──' num2str(i_simulation) '/' num2str(n_sim)])
+ sim_for_stat
+ 
+ cd stat/PF/
+ save(['sim_' method '_'  num2str(i_simulation)])
+ cd ../..
+ 
+ end
+disp('────────────end sim──────────')
+cd stat/PF/
+final_value=
+for i_simulation=1:n_sim
+    load(['sim_EKF_'  num2str(i_simulation)])
+    N=size(x_state,2);
+    x_diff=ones(1,N)*x_t_vec(1)-x_state(1,:);
+    y_diff=ones(1,N)*x_t_vec(2)-x_state(2,:);
+    figure(1),plot(sqrt(x_diff.^2+y_diff.^2))
+    hold on
+end

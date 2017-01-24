@@ -1,0 +1,56 @@
+function [x_state,x_part] = PF_form(s_1, s_k, h_0, alpha_k,x_part,Q, R)
+% Input %%%%%%%%%%%%%%%%%%%%%%%%
+% s_1       :  UAV first position
+% s_k       :  UAV position
+% h_0       :  altitude
+% alpha_k   :  Power ratio measured
+% x_part    :  particules
+% Q         :  process noise
+% R         :  measurement noise
+%
+% Output %%%%%%%%%%%%%%%%%%%%%%%
+% x_state       :  new estimate
+% x_part_prior  :  prior particules 
+% x_part        :  new particules
+ 
+global plot_scaling
+N=size(x_part,1);                                                           % number of particules
+x_part_kp1_k=zeros(size(x_part));
+q=zeros(N,1);
+ 
+for i   =   1 : N % for each particle
+     
+    process_noise = [randn randn]*sqrtm(Q);
+    x_part_kp1_k(i,:) =           f(x_part(i,:)) + process_noise ;                              % Perform the Time Propagation Step to obtain a priori Particles
+    y_part          =           h(x_part_kp1_k(i,:),s_1, s_k, h_0) + sqrt(R) * randn  ;          % Compute Measurement Coditioned on Each Particles
+    v_hat           =           alpha_k - y_part ;                          % Error of Measurement
+%     q(i)          =           exp(-0.5* (-v_hat)^2/R);
+( 1 / sqrt(R) / sqrt(2*pi) ) * exp( - v_hat^2 / 2 / R ) 
+end
+hold off
+% Normalize the Likelihood of Each a Priori Estimate
+q_norm        =           q/cumsum(q) ;                                        % Normalize the Likelihood of Each a Priori Estimate   
+% figure(5), histogram(q_norm),figure(1)
+
+
+% Resample.
+figure(2), histogram(x_part(:,1))
+for i=1:N
+    
+    u  = rand ;                                                             % Uniform Random Number Between 0 and 1
+    qm   = 0 ;                                                              % Accumulated sum of the Likelihood of Each a Priori Estimate
+    for j=1:N
+        qm  = qm + q_norm(j) ;                                              % Compute the Likelihood of Each a Priori Estimate up to j
+        if  qm >= u    
+            % Resample
+            x_part(i,:) = x_part_kp1_k(j,:);                                      
+            break ;
+        end
+    end
+end
+% x_part=x_parst+10*rand(size(x_part))
+% The Particle Filter Estimate is the Mean of the Particles
+x_state      =           mean(x_part) ;
+
+end
+ 

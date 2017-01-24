@@ -121,7 +121,7 @@ end
 
 function [x_combined,P_combined]=combine_points(x_0,x,W_s_0,W_s,W_c_0,W_c)
     n=length(x); 
-    x_combined=W_s_0*x_0
+    x_combined=W_s_0*x_0;
     for i=1:n
     x_combined=x_combined+W_s(i)*x(:,i);
     end

@@ -93,7 +93,7 @@
             q(i)        =           q(i) / qsum ;                                       % Normalize the Likelihood of Each a Priori Estimate
             
         end
-        
+        figure(5), histogram(q),figure(1)
         % Resample.
         for i   =   1 : N
             
