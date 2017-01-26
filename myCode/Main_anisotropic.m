@@ -26,7 +26,7 @@
 
 %   Workspace cleaning
 clc; close all; clear all;
-
+ method='PF';
 
 global d2r
 
@@ -105,7 +105,7 @@ k_b=1.3806488*(10^(-23));                                                   %   
         
     %   UAV parameters    
         %   Initial position and heading
-        [x_vec psi_0]=place_uav();	%   See corresponding function. It places the UAV randomly in a small square in the South-West area with a random heading                          
+        [x_vec, psi_0]=place_uav();	%   See corresponding function. It places the UAV randomly in a small square in the South-West area with a random heading                          
        
         
         %   Altitude-hold
@@ -144,10 +144,10 @@ k_b=1.3806488*(10^(-23));                                                   %   
         
         %   Sensor power measurement standard deviation: Choose and disable
         %   lines for noise specification or for thermal noise approximation:
-        sig_P_r=-120;                                                       %   Gaussian noise affects Power measurement P_r: std sigma in [dBm]
+%         sig_P_r=-120;                                                       %   Gaussian noise affects Power measurement P_r: std sigma in [dBm]
         %sig_P_r=3*P_thermal_noise_dBm;                                     %   std sigma based on thermal noise [dBm]
-        %sig_P_r_W=P_thermal_noise/3;                                       %   std sigma based on thermal noise [W]
-        sig_P_r_W=((10^(sig_P_r/10))/1000);                                 %   std sigma in [W]
+        sig_P_r_W=P_thermal_noise/3;                                      %   std sigma based on thermal noise [W]
+%         sig_P_r_W=((10^(sig_P_r/10))/1000);                                 %   std sigma in [W]
         
         
     %   Geolocation process parameters
@@ -166,37 +166,19 @@ k_b=1.3806488*(10^(-23));                                                   %   
         %   filter initialisation:
             F_KF=eye(2);                                                    %   Dynamics matrix: unity because model is static 
             G_KF=eye(1);                                                    %   Noise matrix: unity for pure additive gaussian noise
-            
-            
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %---------- < Q_KF must be set up appropriately > ------------%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            Q_KF=diag([((0))^2 ((0))^2]);                             %   Process noise matrix: better to be small std for position and power
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %---------- < Q_KF must be set up appropriately > ------------%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            R_KF=0.^2;                                                	%   Specify noise on alpha: enable if wanted  
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            x_state_ini=[x_bnd/2 1*y_bnd/2]';                                 %   Initial state guess - Middle of the area is the first guess
-            
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %---------- < Q_KF must be set up appropriately > ------------%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            P_cov_ini=diag([0^(2) 0^(2)]);                            %   Initial state covariance guess - Change if needed
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-            
-            
-        %    Parameters for fiter rerun
+            switch method
+                case 'PF'
+                    Q_KF=diag([10 10]); 
+                otherwise
+                    
+                    Q_KF=diag([((0.01))^2 ((0.01))^2]);                                   %   Process noise matrix: better to be small std for position and power
+            end
+            R_KF=0;                                                         %   Specify noise on alpha: enable if wanted  
+            x_state_ini=[x_bnd/2 y_bnd/2]';                               %   Initial state guess - Middle of the area is the first guess
+            P_cov_ini=12000*eye(2);                                        %   Initial state covariance guess - Change if needed 
+       
+             
+        %    Parameters for EKF (UKF) rerun
             re_run_bool=0;     	
             
     %   Vector field part parameters
@@ -251,14 +233,32 @@ P_r_filt_ratio=zeros(N_loops_fb,1);                                            %
 centre_geo_circle=zeros(N_loops_fb,2);                                         %   Centre of geolocation circle at instant k
 radius_geo_circle=zeros(N_loops_fb,1);                                         %   Radius of geolocation circle at instant k
 
-%   Filters
-    %   
-    x_state=zeros(2,N_loops_fb);                                             	%   Updated filter state vector for all steps                               
-    P_cov=zeros(2,2,N_loops_fb);                                             	%   filter Covariance matrix for all
-    K_EKF_gain=zeros(2,N_loops_fb);                                           	%   Kalman gain storage
-
-    
-                                        
+%   Filters init
+    switch method
+        
+        case 'EKF'% Initialize Extended Kalman Filter
+            x_state             =       zeros(2,N_loops_fb);                %   Updated EKF  state vector for all steps
+            P_cov               =       zeros(2,2,N_loops_fb);              %   EKF Covariance matrix for all
+            K_EKF_gain          =       zeros(2,N_loops_fb);                %   Kalman gain storage
+            H_EKF               =       zeros(2,N_loops_fb);                %   Linearisation of h storage
+            
+        case 'UKF'% Initialize Unscented Kalman Filter
+            x_state             =       zeros(2,N_loops_fb);                %   Updated UKF state vector for all steps
+            P_cov               =       zeros(2,2,N_loops_fb);              %   UKF Covariance matrix for all
+            K_UKF_gain          =       zeros(2,N_loops_fb);                %   Kalman gain storage
+            
+        case 'PF'% Initialize Particle Filter
+            N_part              =           1000 ;                          %   Number of Particles in the Particle Filter
+            x_part_ini             =           12000*rand(N_part,2) ;            %   Particles of State Estimation
+            x_hat_part          =           mean( x_part_ini ) ;
+            P_cov               =           zeros(2,2,N_loops_fb);          % to avoid annimation error
+            
+            x_part              =           x_part_ini ;                       % Assign Particles of State
+%             x_Arr_PF            =           x_Arr ;                       % Array of x in Particle Filter
+%             y_Arr_PF            =           y_Arr ;                       % Array of y in Particle Filter
+             x_state             =       zeros(2,N_loops_fb);               %   Updated PF state vector for all steps
+    end
+           
 %   Simulation data
 d_uav=zeros(N_loops_fb,1);                                                     %   Distance travelled by the UAV
 
@@ -323,6 +323,11 @@ for k=1:N_loops_fb                                                             %
     if (k>3*butter_order)                                                                           %   filter only works with sufficient data points
         P_r_filt=zeros(k,1);                                                                        %   Re-Initialise filtered data at each step
         P_r_filt(1:k,1)=filtfilt(b_butter,a_butter,P_r_meas(1:k,1));                                %   Filter noisy P_r_true at each new step
+        
+        % initialise the noise matrix
+        if (P_r_filt(1,1)) && R_KF==0
+           R_KF = (sig_P_r_W^2)/(P_r_filt(1,1)^2);
+        end
     end 
         
              
@@ -371,12 +376,20 @@ for k=1:N_loops_fb                                                             %
             
             % To make sure this file run, I just put x_state(:,k) = x_t_vec
             % (the true target postion)            
-            x_state(:,k) = x_t_vec;
-            %%% students must uncomment the following line and design a new
-            %%% fitler anglrithm to alleviate the peformance degradation
-            %%% casued by anisotropic jammer pattern
-            %%%%% [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=KF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
-            
+			% x_state(:,k) = x_t_vec;
+            %%% students must uncomment the following line and design a EKF
+            %%% and UKF
+            save('data')
+            switch method
+                case 'EKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
+                case 'UKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
+                case 'PF'
+             [x_state(:,k),x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
+
+            end
+             
             if (re_run_bool==1)
                 re_run_bool=0;
                 div_EKF_bool=0;
@@ -390,11 +403,18 @@ for k=1:N_loops_fb                                                             %
             
             % To make sure this file run, I just put x_state(:,k) = x_t_vec
             % (the true target postion)            
-            x_state(:,k) = x_t_vec;
-            %%% students must uncomment the following line and design a new
-            %%% fitler anglrithm to alleviate the peformance degradation
-            %%% casued by anisotropic jammer pattern
-            %%%%% [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=KF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
+			%   x_state(:,k) = x_t_vec;
+            %%% students must uncomment the following line and design a EKF
+            %%% and UKF
+           switch method
+                case 'EKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
+               case 'UKF'
+            [x_state(:,k),P_cov(:,:,k),K_UKF_gain(:,k)]             =UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
+               case 'PF'
+             [x_state(:,k),x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF);
+           end
+
         end
         
         
@@ -405,7 +425,7 @@ for k=1:N_loops_fb                                                             %
         
     %   Animation: plot new UAV, Jammer and UAV trace at each iteration.
     %   See corresponding function for detail
-    plot_animation_search(N_plots,k,x_t_vec,x_vec_all(1:k,:),psi_all(k,1),r_est_l(k,1),r_est_h(k,1),centre_geo_circle(k,:),radius_geo_circle(k,1),x_state(:,1:k),k_obs,N_loops_fb,P_cov(:,:,k),p_e,0,psi_jammer);
+%      plot_animation_search(N_plots,k,x_t_vec,x_vec_all(1:k,:),psi_all(k,1),r_est_l(k,1),r_est_h(k,1),centre_geo_circle(k,:),radius_geo_circle(k,1),x_state(:,1:k),k_obs,N_loops_fb,P_cov(:,:,k),p_e,0,psi_jammer);
  
 end                              
 %   ------------------------    End Main flyby loop -----------------------------
@@ -420,7 +440,72 @@ end
 %%%% Students must analyse the performance of their own filters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-
+figure(2),clf
+switch method
+    case 'EKF'
+        subplot(221),hold on
+            plot(x_t_vec(1)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(1,:)/plot_scaling,'k')
+                sigma_x2=zeros(N_loops_fb,1);
+                sigma_x2(:)=P_cov(1,1,:);
+                sigma_x=sqrt(sigma_x2);
+                plot((x_state(1,:)+2*sigma_x')/plot_scaling,':b')
+                plot((x_state(1,:)-2*sigma_x')/plot_scaling,':b')
+            hold off
+        subplot(222),hold on
+            plot(x_t_vec(2)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(2,:)/plot_scaling,'k')
+                sigma_y2=zeros(N_loops_fb,1);
+                sigma_y2(:)=P_cov(1,1,:);
+                sigma_y=sqrt(sigma_x2);
+                plot((x_state(2,:)+2*sigma_y')/plot_scaling,':b')
+                plot((x_state(2,:)-2*sigma_y')/plot_scaling,':b')
+            hold off
+        subplot(223), 
+        plot(K_EKF_gain(1,:).*H_EKF(1,:))%,ylim([-1 1])
+        subplot(224), 
+        plot(K_EKF_gain(2,:).*H_EKF(2,:))%,ylim([-1 1])
+    case 'UKF'
+        subplot(221),hold on
+            plot(x_t_vec(1)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(1,:)/plot_scaling,'k')
+                sigma_x2=zeros(N_loops_fb,1);
+                sigma_x2(:)=P_cov(1,1,:);
+                sigma_x=sqrt(sigma_x2);
+                plot((x_state(1,:)+2*sigma_x')/plot_scaling,':b')
+                plot((x_state(1,:)-2*sigma_x')/plot_scaling,':b')
+            hold off
+        subplot(222),hold on
+            plot(x_t_vec(2)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(2,:)/plot_scaling,'k')
+                sigma_y2=zeros(N_loops_fb,1);
+                sigma_y2(:)=P_cov(1,1,:);
+                sigma_y=sqrt(sigma_x2);
+                plot((x_state(2,:)+2*sigma_y')/plot_scaling,':b')
+                plot((x_state(2,:)-2*sigma_y')/plot_scaling,':b')
+            hold off
+        subplot(223), 
+        plot(K_UKF_gain(1,:))%,ylim([-1 1])
+        subplot(224), 
+        plot(K_UKF_gain(2,:))%,ylim([-1 1])
+    case 'PF'
+        subplot(221),hold on
+            plot(x_t_vec(1)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(1,:)/plot_scaling,'k')
+               
+            hold off
+        subplot(222),hold on
+            plot(x_t_vec(2)*ones(N_loops_fb,1)/plot_scaling,'--r')
+            plot(x_state(2,:)/plot_scaling,'k')
+                
+            hold off
+%         % Compute RMS Value
+% if  k   ==  tf
+%     x_hat_part_RMS  =   sqrt( ( norm( x_Arr_PF - x_hat_part_Arr ) )^2 / tf ) ; % Particle Filter RMS Error
+%     disp( [ 'Particle Filter RMS Error = ', num2str(x_hat_part_RMS) ] ) ;       % Display Particle Filter RMS Error  
+% end
+end
+ figure(1), 
 
 %%
 
@@ -465,10 +550,18 @@ radius_geo_circle=[radius_geo_circle ; zeros(N_loops_vf-N_loops_fb,1)];     %   
 %   Filters
     %   filter
     r_est=zeros(N_loops_vf,1);                                              %   Only used in the second part (VF)
-    x_state=[x_state zeros(2,N_loops_vf-N_loops_fb)];                    	%   Updated filter state vector for all steps                               
-    P_cov(:,:,N_loops_fb+1:N_loops_vf)=0;                                   %   filter Covariance matrix for all    
+    
+    x_state=[x_state zeros(2,N_loops_vf-N_loops_fb)];                    	%   Updated EKF (UKF) state vector for all steps                               
+    switch method 
+        case 'EKF'
+    P_cov(:,:,N_loops_fb+1:N_loops_vf)=0;                                   %   EKF (UKF) Covariance matrix for all    
     K_EKF_gain=[K_EKF_gain zeros(2,N_loops_vf-N_loops_fb)];              	%   Kalman gain storage
-                                        
+        case 'UKF'
+    P_cov(:,:,N_loops_fb+1:N_loops_vf)=0;                                   %   EKF (UKF) Covariance matrix for all    
+    K_UKF_gain=[K_UKF_gain zeros(2,N_loops_vf-N_loops_fb)];              	%   Kalman gain storage
+        case 'PF'
+            P_cov(:,:,N_loops_fb+1:N_loops_vf)=0                            % to avoid annimation error
+    end
 %   Simulation data
 d_uav=[d_uav ; zeros(N_loops_vf-N_loops_fb,1)];                           	%   Distance travelled by the UAV
 d_uav(N_loops_fb+1,1)=d_uav(N_loops_fb,:)+D_T*sqrt(x_vec_dot(N_loops_fb,:)*(x_vec_dot(N_loops_fb,:))');
@@ -594,7 +687,7 @@ for k=(N_loops_fb+1):N_loops_vf
     if (k>3*butter_order+1)                                                                         %   If simulation has initialised
        P_r_filt_ratio(k,1)=((P_r_filt(k,1)))/(P_r_filt(1,1));                                       %   Get power ratio: alpha 
        if (abs((P_r_filt_ratio(k,1)-1))>0.05/100)                                                  	%   If ratio away from 1 with confidence
-        [centre_geo_circle(k,:) radius_geo_circle(k,1)]=get_geo_data(x_vec_all(1,:),x_vec_all(k,:),P_r_filt_ratio(k,1)); %    See corresponding function
+        [centre_geo_circle(k,:), radius_geo_circle(k,1)]=get_geo_data(x_vec_all(1,:),x_vec_all(k,:),P_r_filt_ratio(k,1)); %    See corresponding function
        else
            alpha_eq_1=1;                                                                            %   Boolean to indicate that ratio is close to 1 therefore set to 1 in the simulation
        end
@@ -611,12 +704,18 @@ for k=(N_loops_fb+1):N_loops_vf
             
             % To make sure this file run, I just put x_state(:,k) = x_t_vec
             % (the true target postion)            
-            x_state(:,k) = x_t_vec;
-            %%% students must uncomment the following line and design a new
-            %%% fitler anglrithm to alleviate the peformance degradation
-            %%% casued by anisotropic jammer pattern
-            %%%%% [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=KF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
-                        
+%             x_state(:,k) = x_t_vec;
+            %%% students must uncomment the following line and design a EKF
+            %%% and UKF
+            
+            switch method
+                case 'EKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]= EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
+                case 'UKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=            UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,Q_KF,R_KF);
+                case 'PF'
+             [x_state(:,k), x_part] = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part_ini,Q_KF, R_KF);
+            end            
             re_run_bool=0;
           	div_EKF_bool=0;
 
@@ -628,18 +727,24 @@ for k=(N_loops_fb+1):N_loops_vf
             
             % To make sure this file run, I just put x_state(:,k) = x_t_vec
             % (the true target postion)            
-            x_state(:,k) = x_t_vec;
-            %%% students must uncomment the following line and design a new
-            %%% fitler anglrithm to alleviate the peformance degradation
-            %%% casued by anisotropic jammer pattern
-            %%%%% [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]=KF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state_ini,P_cov_ini,F_KF,G_KF,Q_KF,R_KF);
-            
+%             x_state(:,k) = x_t_vec;
+            %%% students must uncomment the following line and design a EKF
+            %%% and UKF
+%             [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]      =EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
+            switch method
+                case 'EKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k),H_EKF(:,k)]  = EKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),F_KF,G_KF,Q_KF,R_KF);
+                case 'UKF'
+            [x_state(:,k),P_cov(:,:,k),K_EKF_gain(:,k)]             = UKF_form(x_vec_all(1,:),x_vec_all(k,:),h_0,P_r_filt_ratio(k,1),x_state(:,k-1),P_cov(:,:,k-1),Q_KF,R_KF);
+                case 'PF'
+            [x_state(:,k), x_part]                     = PF_form(x_vec_all(1,:), x_vec_all(k,:),h_0, P_r_filt_ratio(k,1),x_part,Q_KF, R_KF);
+            end
         end        
     
         
     %   Animation: plot new UAV, Jammer and UAV trace at each iteration.
     %   See corresponding function for detail
-    plot_animation_search(N_plots,k,x_t_vec,x_vec_all(1:k,:),psi_all(k,1),r_est_l(k,1),r_est_h(k,1),centre_geo_circle(k,:),radius_geo_circle(k,1),x_state(:,1:k),k_obs,N_loops_fb,P_cov(:,:,k),p_e,r_d,psi_jammer);
+%     plot_animation_search(N_plots,k,x_t_vec,x_vec_all(1:k,:),psi_all(k,1),r_est_l(k,1),r_est_h(k,1),centre_geo_circle(k,:),radius_geo_circle(k,1),x_state(:,1:k),k_obs,N_loops_fb,P_cov(:,:,k),p_e,r_d,psi_jammer);
     
     
 end
@@ -654,5 +759,79 @@ end
 %%%% Students must analyse the performance of their own filters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%(N_loops_fb+1):N_loops_vf
+n_loop=N_loops_vf-N_loops_fb;
+range_vf=(N_loops_fb+1):N_loops_vf;
+figure(3),clf
+switch method
+    case      'EKF'
+        subplot(231),hold on
+            p221_ref=plot(x_t_vec(1)*ones(n_loop,1)/plot_scaling,'--r')
+            p221_stateEstimate=plot(x_state(1,range_vf)/plot_scaling,'k')
 
+                sigma_x2=zeros(n_loop,1);
+                sigma_x2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
+                sigma_x=sqrt(sigma_x2);
+                p221_95conf=plot((x_state(1,(N_loops_fb+1):N_loops_vf)+2*sigma_x')/plot_scaling,':b')
+                plot((x_state(1,(N_loops_fb+1):N_loops_vf)-2*sigma_x')/plot_scaling,':b')
 
+            hold off, 
+            legend_result=legend([p221_ref,p221_stateEstimate,p221_95conf],'true state','state estimation with EKF','95% Confidence Region');
+        subplot(232),hold on
+            plot(x_t_vec(2)*ones(n_loop,1)/plot_scaling,'--r')
+            plot(x_state(2,range_vf)/plot_scaling,'k')
+
+                sigma_y2=zeros(n_loop,1);
+                sigma_y2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
+                sigma_y=sqrt(sigma_x2);
+                plot((x_state(2,(N_loops_fb+1):N_loops_vf)+2*sigma_y')/plot_scaling,':b')
+                plot((x_state(2,(N_loops_fb+1):N_loops_vf)-2*sigma_y')/plot_scaling,':b')
+
+            hold off
+            subplot(234)
+        plot(K_EKF_gain(1,range_vf).*H_EKF(1,range_vf))
+        subplot(235)
+        plot(K_EKF_gain(2,range_vf).*H_EKF(2,range_vf))
+    case 'UKF'
+         subplot(231),hold on
+            p221_ref=plot(x_t_vec(1)*ones(n_loop,1)/plot_scaling,'--r')
+            p221_stateEstimate=plot(x_state(1,range_vf)/plot_scaling,'k')
+
+                sigma_x2=zeros(n_loop,1);
+                sigma_x2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
+                sigma_x=sqrt(sigma_x2);
+                p221_95conf=plot((x_state(1,(N_loops_fb+1):N_loops_vf)+2*sigma_x')/plot_scaling,':b')
+                plot((x_state(1,(N_loops_fb+1):N_loops_vf)-2*sigma_x')/plot_scaling,':b')
+
+            hold off, 
+            legend_result=legend([p221_ref,p221_stateEstimate,p221_95conf],'true state','state estimation with EKF','95% Confidence Region');
+        subplot(232),hold on
+            plot(x_t_vec(2)*ones(n_loop,1)/plot_scaling,'--r')
+            plot(x_state(2,range_vf)/plot_scaling,'k')
+
+                sigma_y2=zeros(n_loop,1);
+                sigma_y2(:)=P_cov(1,1,(N_loops_fb+1):N_loops_vf);
+                sigma_y=sqrt(sigma_x2);
+                plot((x_state(2,(N_loops_fb+1):N_loops_vf)+2*sigma_y')/plot_scaling,':b')
+                plot((x_state(2,(N_loops_fb+1):N_loops_vf)-2*sigma_y')/plot_scaling,':b')
+
+            hold off
+            subplot(234)
+        plot(K_EKF_gain(1,range_vf).*H_EKF(1,range_vf))
+        subplot(235)
+        plot(K_EKF_gain(2,range_vf).*H_EKF(2,range_vf))
+    case 'PF'
+        subplot(231),hold on
+            p221_ref=plot(x_t_vec(1)*ones(n_loop,1)/plot_scaling,'--r')
+            p221_stateEstimate=plot(x_state(1,range_vf)/plot_scaling,'k')
+
+             
+            hold off, 
+            legend_result=legend([p221_ref,p221_stateEstimate,p221_95conf],'true state','state estimation with EKF','95% Confidence Region');
+        subplot(232),hold on
+            plot(x_t_vec(2)*ones(n_loop,1)/plot_scaling,'--r')
+            plot(x_state(2,range_vf)/plot_scaling,'k')
+
+            hold off
+end 
+figure(2),figure(3) 

@@ -30,7 +30,8 @@
 global d2r
 
 %   Constants (not to be modified)
-d2r=pi/180;                                                                 %   Value in rad = Value in deg * d2r
+d2r=pi/180;                                
+%   Value in rad = Value in deg * d2r
 r2d=1/d2r;                                                                  %   Value in deg = Value in rad * r2d
 g_0=9.81;                                                                   %   Gravity acceleration assumd constant [m/s^2]
 f_L1=1575.42*10^6;                                                          %   L1 frequency [Hz]
@@ -162,8 +163,8 @@ k_b=1.3806488*(10^(-23));                                                   %   
             %   EKF (UKF) initialisation:
             F_KF=eye(2);                                                    %   Dynamics matrix: unity because model is static 
             G_KF=eye(1);                                                    %   Noise matrix: unity for pure additive gaussian noise
-            Q_KF=diag([((1))^2 ((1))^2]);                                   %   Process noise matrix: better to be small std for position and power
-            R_KF=0;                                                         %   Specify noise on alpha: enable if wanted  
+%             Q_KF=diag([((1))^2 ((1))^2]);                                   %   Process noise matrix: better to be small std for position and power
+%             R_KF=0;                                                         %   Specify noise on alpha: enable if wanted  
             x_state_ini=[x_bnd/2 y_bnd/2]';                               %   Initial state guess - Middle of the area is the first guess
             P_cov_ini=12000*eye(2);                                        %   Initial state covariance guess - Change if needed 
        
@@ -230,18 +231,18 @@ radius_geo_circle=zeros(N_loops_fb,1);                                         %
             P_cov               =       zeros(2,2,N_loops_fb);              %   EKF Covariance matrix for all
             K_EKF_gain          =       zeros(2,N_loops_fb);                %   Kalman gain storage
             H_EKF               =       zeros(2,N_loops_fb);                %   Linearisation of h storage
-            
+%             Q_KF=diag([((0.01))^2 ((0.01))^2]); 
         case 'UKF'% Initialize Unscented Kalman Filter
             x_state             =       zeros(2,N_loops_fb);                %   Updated UKF state vector for all steps
             P_cov               =       zeros(2,2,N_loops_fb);              %   UKF Covariance matrix for all
             K_UKF_gain          =       zeros(2,N_loops_fb);                %   Kalman gain storage
-            
+%             Q_KF=diag([((0.01))^2 ((0.01))^2]); 
         case 'PF'% Initialize Particle Filter
-            N_part              =           1000 ;                          %   Number of Particles in the Particle Filter
+                                   %   Number of Particles in the Particle Filter
             x_part_ini             =           12000*rand(N_part,2) ;            %   Particles of State Estimation
             x_hat_part          =           mean( x_part_ini ) ;
             P_cov               =           zeros(2,2,N_loops_fb);          % to avoid annimation error
-            
+%             Q_KF=diag([((10))^2 ((10))^2]); 
             x_part              =           x_part_ini ;                       % Assign Particles of State
 %             x_Arr_PF            =           x_Arr ;                       % Array of x in Particle Filter
 %             y_Arr_PF            =           y_Arr ;                       % Array of y in Particle Filter
@@ -309,9 +310,13 @@ for k=1:N_loops_fb                                                             %
         P_r_filt(1:k,1)=filtfilt(b_butter,a_butter,P_r_meas(1:k,1));                                %   Filter noisy P_r_true at each new step
         
         % initialise the noise matrix
-        if (P_r_filt(1,1)) && R_KF==0
-           R_KF = (sig_P_r_W^2)/(P_r_filt(1,1)^2);
-        end
+%         if (P_r_filt(1,1)) && R_KF==0
+%             if strcmp(method,'PF')
+%                 R_KF=0.1^2;
+%             else
+%            R_KF = (sig_P_r_W^2)/(P_r_filt(1,1)^2);
+%             end
+%         end
     end 
         
              
@@ -492,7 +497,7 @@ radius_geo_circle=[radius_geo_circle ; zeros(N_loops_vf-N_loops_fb,1)];     %   
     P_cov(:,:,N_loops_fb+1:N_loops_vf)=0;                                   %   EKF (UKF) Covariance matrix for all    
     K_EKF_gain=[K_EKF_gain zeros(2,N_loops_vf-N_loops_fb)];              	%   Kalman gain storage
         case 'PF'
-            P_cov(:,:,N_loops_fb+1:N_loops_vf)=0                            % to avoid annimation error
+            P_cov(:,:,N_loops_fb+1:N_loops_vf)=0;                            % to avoid annimation error
     end
 %   Simulation data
 d_uav=[d_uav ; zeros(N_loops_vf-N_loops_fb,1)];                           	%   Distance travelled by the UAV

@@ -20,7 +20,7 @@ q=zeros(N,1);
  
 for i   =   1 : N % for each particle
      
-    process_noise = Q*randn(2,1);
+    process_noise = sqrtm(Q)*randn(2,1);
     x_part_kp1_k(i,:) =           f(x_part(i,:)) + process_noise' ;                              % Perform the Time Propagation Step to obtain a priori Particles
     z_part          =           h(x_part_kp1_k(i,:),s_1, s_k, h_0) ;          % Compute Measurement Coditioned on Each Particles
     v_hat           =           alpha_k - z_part ;                          % Error of Measurement
@@ -40,7 +40,7 @@ qsum            =           sum(q) ;                                            
 
 
 % Resample.
-figure(2), histogram2(x_part(:,1),x_part(:,2))
+% figure(2), histogram2(x_part(:,1),x_part(:,2))
 for i=1:N
     
     u  = rand ;                                                             % Uniform Random Number Between 0 and 1
